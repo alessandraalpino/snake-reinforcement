@@ -4,6 +4,7 @@ from enum import Enum
 from collections import namedtuple
 
 pygame.init()
+font = pygame.font.SysFont('arial',25)
 
 class Direction(Enum):
     RIGHT = 1
@@ -13,8 +14,19 @@ class Direction(Enum):
 
 Point = namedtuple('Point','x,y')
 
+
+# rgb colors
+# values between 0 and 255
+# colors to use in the game
+WHITE = (255,255,255)
+RED = (200,0,0)
+BLUE1 = (0,0,255)
+BLUE2= (0,100,255)
+BLACK = (0,0,0)
+
 # set block size
 BLOCK_SIZE = 20
+SPEED = 20
 
 class SnakeGame:
     # set display size
@@ -58,18 +70,87 @@ class SnakeGame:
 
     def play_step(self):
         # 1. collect user input
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    self.direction = Direction.LEFT
+                elif event.key == pygame.K_RIGHT:
+                    self.direction = Direction.RIGHT
+                elif event.key == pygame.K_UP:
+                    self.direction = Direction.UP
+                elif event.key == pygame.K_DOWN:
+                    self.direction = Direction.DOWN
 
         #2.move
+        self._move(self.direction) #update the head, we don't use append because we need it in the beggining
+        self.snake.insert(0, self.head)
 
         #3. check if game over
+        game_over = False
+        if self._is_collision():
+            game_over = True
+            return game_over, self.score
 
         #4. place new food or just move
+        if self.head == self.food:
+            self.score += 1
+            self._place_food()
+        else:
+            #remove the last element of the snake
+            self.snake.pop()
 
-        #5. update ui and check
+        #5. update ui and clock
+        self._update_ui()
+        #control how fast the frame update
+        self.clock.tick(SPEED)
 
         #6. turn game over and score
-        game_over = False
+
         return game_over, self.score
+
+    def _is_collision(self):
+        #hists boundary
+        if self.head.x > self.w - BLOCK_SIZE or self.head.x < 0 or self.head.y > self.h - BLOCK_SIZE or self.head.y < 0:
+            return True
+        #hists itself
+        # [1:] because the head is always in the snake, so we exclude the first element
+        if self.head in self.snake[1:]:
+            return True
+
+        return False
+
+
+    def _update_ui(self):
+        self.display.fill(BLACK)
+
+        for pt in self.snake:
+            pygame.draw.rect(self.display,BLUE1, pygame.Rect(pt.x,pt.y,BLOCK_SIZE,BLOCK_SIZE))
+            pygame.draw.rect(self.display,BLUE2, pygame.Rect(pt.x+4,pt.y+4,12,12))
+
+        pygame.draw.rect(self.display, RED, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
+
+        text = font.render("Score: " + str(self.score), True, WHITE)
+        # 0,0 means upper left
+        self.display.blit(text, [0,0])
+        # without this command we don't see the changes of score
+        pygame.display.flip()
+
+    def _move(self, direction):
+        x = self.head.x
+        y = self.head.y
+        if direction == Direction.RIGHT:
+            x += BLOCK_SIZE
+        elif direction == Direction.LEFT:
+            x -= BLOCK_SIZE
+        elif direction == Direction.DOWN:
+            y += BLOCK_SIZE
+        elif direction == Direction.UP:
+            y -= BLOCK_SIZE
+
+        self.head = Point(x,y)
 
 
 
